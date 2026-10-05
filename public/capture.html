@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#121317" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Capture" />
+    <title>Playtest capture · AI Kanban</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="manifest" href="/capture.webmanifest" />
+    <script src="/theme.js"></script>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/capture.js"></script>
+  </head>
+  <body class="capture-page">
+    <main class="capture">
+      <header class="capture-head">
+        <img src="/favicon.svg" alt="" width="22" height="22" />
+        <h1>Playtest capture</h1>
+        <span id="project" class="project-menu"></span>
+      </header>
+
+      <form id="key-form" class="capture-card" hidden>
+        <label class="field"><span>API key</span><input name="key" type="password" autocomplete="off" required>
+          <small>This board requires a key. It's stored on this device only.</small></label>
+        <button class="btn btn-primary">Save</button>
+      </form>
+
+      <form id="capture-form" class="capture-card" autocomplete="off">
+        <textarea name="note" rows="4" required aria-label="What happened?"
+          placeholder="What happened? The first line becomes the title.&#10;&#10;Details, steps to reproduce…"></textarea>
+
+        <fieldset class="seg" aria-label="Kind">
+          <label><input type="radio" name="kind" value="bug" checked><span><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/icons.svg#i-bug"/></svg>Bug</span></label>
+          <label><input type="radio" name="kind" value="tweak"><span><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/icons.svg#i-sliders-horizontal"/></svg>Tweak</span></label>
+          <label><input type="radio" name="kind" value="idea"><span><svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/icons.svg#i-lightbulb"/></svg>Idea</span></label>
+        </fieldset>
+
+        <fieldset class="seg seg-prio" aria-label="Priority">
+          <label><input type="radio" name="priority" value="low"><span data-priority="low">Low</span></label>
+          <label><input type="radio" name="priority" value="medium" checked><span data-priority="medium">Medium</span></label>
+          <label><input type="radio" name="priority" value="high"><span data-priority="high">High</span></label>
+          <label><input type="radio" name="priority" value="urgent"><span data-priority="urgent">Urgent</span></label>
+        </fieldset>
+
+        <label class="shot-picker btn">
+          <svg class="icon" width="16" height="16" aria-hidden="true" focusable="false"><use href="/icons.svg#i-image-plus"/></svg>Add screenshots or clips
+          <input id="files" type="file" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/webm,video/quicktime" multiple>
+        </label>
+        <div id="shots" class="shots"></div>
+
+        <div class="field-row">
+          <label class="field"><span>Build</span><input name="build" placeholder="e.g. 0.4.2" maxlength="60"></label>
+          <label class="field"><span>You</span><input name="me" placeholder="human" maxlength="64"></label>
+        </div>
+
+        <button id="submit" class="btn btn-primary capture-submit">Capture</button>
+      </form>
+
+      <section class="capture-recent">
+        <div class="section-head"><h3>Recent captures</h3><a href="/" class="muted">Open board<svg class="icon" width="14" height="14" aria-hidden="true" focusable="false"><use href="/icons.svg#i-arrow-right"/></svg></a></div>
+        <ol id="recent" class="related"></ol>
+      </section>
+    </main>
+    <div id="toasts" class="toasts" aria-live="polite"></div>
+  </body>
+</html>

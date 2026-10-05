@@ -1,0 +1,10 @@
+{
+  "name": "AI Kanban playtest capture",
+  "short_name": "Capture",
+  "start_url": "/capture",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f5f7",
+  "theme_color": "#5b5bd6",
+  "icons": [{ "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

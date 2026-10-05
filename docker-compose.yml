@@ -1,0 +1,25 @@
+services:
+  kanban:
+    build: .
+    image: ai-kanban:latest
+    container_name: ai-kanban
+    restart: unless-stopped
+    ports:
+      # Bound to localhost only. Set KANBAN_BIND=0.0.0.0 to reach it from your
+      # phone or other machines on your network (and set KANBAN_API_KEY if you do).
+      - "${KANBAN_BIND:-127.0.0.1}:${KANBAN_PORT:-8080}:8080"
+    environment:
+      API_KEY: ${KANBAN_API_KEY:-}
+      # The human's key for the Director role. Without it the board runs open (any client may act as the Director).
+      DIRECTOR_KEY: ${KANBAN_DIRECTOR_KEY:-}
+      # The folder mounted below, so a repo_path outside it gets an error that says where the server can look.
+      KANBAN_REPOS: ${KANBAN_REPOS:-}
+    volumes:
+      - kanban-data:/data
+      # Read-only view of your repos, for projects that set repo_path. Mounted at the same
+      # path as on your machine, so repo_path is the path you know. Set KANBAN_REPOS (e.g. in
+      # .env) to the folder holding your repos, like /Users/you/Developer.
+      - ${KANBAN_REPOS:-./.no-repos}:${KANBAN_REPOS:-/repos}:ro
+
+volumes:
+  kanban-data:

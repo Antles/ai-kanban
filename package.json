@@ -1,0 +1,15 @@
+{
+  "name": "ai-kanban",
+  "version": "1.0.0",
+  "description": "A self-hosted kanban board with a REST + MCP API for AI agents",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch src/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  }
+}
