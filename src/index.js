@@ -1,7 +1,8 @@
 import { createApp } from './server.js';
 
 const port = Number(process.env.PORT) || 8080;
-const host = process.env.HOST || '0.0.0.0';
+// Localhost unless told otherwise; the Docker image sets HOST=0.0.0.0 and Compose publishes it on 127.0.0.1.
+const host = process.env.HOST || '127.0.0.1';
 const dbPath = process.env.DB_PATH || './data/kanban.db';
 
 const app = createApp({ dbPath, apiKey: process.env.API_KEY || '', directorKey: process.env.DIRECTOR_KEY || '' });

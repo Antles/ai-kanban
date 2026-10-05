@@ -1,5 +1,5 @@
-// Phone-friendly playtest capture: one note (+ screenshots) becomes a backlog task
-// labeled "playtest", ready for you or an agent to triage on the board.
+// Phone-friendly quick capture: one note (+ screenshots) becomes a backlog task labeled with
+// the project's capture_label ("capture" by default), ready for you or an agent to triage on the board.
 import { icon, statusIcon, priorityIcon } from './icons.js';
 import { menuButton, bindMenus } from './menu.js';
 
@@ -83,8 +83,8 @@ async function api(path, { method = 'GET', body, raw, type } = {}) {
   return data;
 }
 
-// "iPhone OS 17_5" → "iOS 17.5". The phone you capture on is usually the one you play on,
-// so screen size and OS help reproduce layout bugs in a portrait game.
+// "iPhone OS 17_5" → "iOS 17.5". The device you capture on is usually the one you were testing,
+// so screen size and OS help reproduce layout bugs.
 function deviceSummary() {
   const ua = navigator.userAgent;
   const ios = ua.match(/OS (\d+)_(\d+)[_\d]* like Mac OS X/);
@@ -92,6 +92,8 @@ function deviceSummary() {
   const os = ios ? `iOS ${ios[1]}.${ios[2]}` : android ? `Android ${android[1]}` : navigator.platform || 'desktop';
   return `${screen.width}×${screen.height} @${Math.round(devicePixelRatio * 10) / 10}x · ${os}`;
 }
+
+const captureLabel = () => state.projects.find((p) => p.key === state.project)?.capture_label ?? 'capture';
 
 function buildTask(form) {
   const note = form.elements.note.value.trim();
@@ -107,10 +109,10 @@ function buildTask(form) {
   return {
     project: state.project,
     title,
-    description: `${details ? `${details}\n\n` : ''}---\n${meta} · captured while playtesting`,
+    description: `${details ? `${details}\n\n` : ''}---\n${meta} · quick capture`,
     type: KINDS[form.elements.kind.value],
     priority: form.elements.priority.value,
-    labels: ['playtest'],
+    labels: [captureLabel()],
     status: 'backlog',
   };
 }
@@ -170,7 +172,7 @@ function renderProjectMenu() {
 
 async function loadRecent() {
   if (!state.project) return;
-  const tasks = await api(`/api/tasks?project=${encodeURIComponent(state.project)}&label=playtest&limit=1000`).catch(() => []);
+  const tasks = await api(`/api/tasks?project=${encodeURIComponent(state.project)}&label=${encodeURIComponent(captureLabel())}&limit=1000`).catch(() => []);
   const recent = tasks.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 8);
   els.recent.innerHTML =
     recent

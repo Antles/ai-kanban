@@ -63,17 +63,17 @@ Base URL: `{{BASE_URL}}` · OpenAPI: `{{BASE_URL}}/api/openapi.json` · MCP: `{{
 | Status       | `backlog` → `todo` → `in_progress` → `review` → `done` |
 | Priority     | `urgent` > `high` > `medium` > `low`. **Columns are sorted by priority, highest first**; within a priority the order is manual. |
 | Type         | `task`, `feature`, `bug`, `chore`, `spike` |
-| Task key     | `<PROJECT>-<number>`, e.g. `GAME-12`. Use it anywhere a task is referenced. |
+| Task key     | `<PROJECT>-<number>`, e.g. `APP-12`. Use it anywhere a task is referenced. |
 | depends_on   | Task keys that must be `done` first. A task with unfinished dependencies is `blocked` and can't be claimed. |
 | prerequisites | `[{text, done}]`: what the human must do before an agent starts ("Install the .NET 8 SDK"). Unticked ones block the task exactly like `depends_on` (the 409 names them). You may add them (unticked); only the human ticks them. |
 | parent       | Optional parent task key, for breaking a big task into subtasks. |
-| Epic         | A large feature or theme ("Save system") that groups related tasks. It's a task of type `epic` with its own key, but never a board card and never claimed. Tasks join it via their `epic` field (key or exact title). |
+| Epic         | A large feature or theme ("Checkout") that groups related tasks. It's a task of type `epic` with its own key, but never a board card and never claimed. Tasks join it via their `epic` field (key or exact title). |
 | Sprint       | An ordered, planned batch of tasks with a goal and optional dates: `planned` → `active` (one at a time) → `completed`. Referenced by name, id, or `"active"`. |
 | Estimate     | Story points on a task (1, 2, 3, 5, 8, 13). Sprints and epics sum them. |
 | Milestone    | A dated goal or release that groups tasks, with progress. Referenced by name or id. |
 | criteria     | Acceptance criteria: a checklist of `{text, done, owner, evidence?}`. `owner` is `agent` (default) or `human` (the Director verifies it, e.g. "readable on your phone"; write `"[director] ..."` to create one). Tick with `POST /api/tasks/:key/criteria`. |
 | context      | Repo paths, docs or URLs to read before starting. |
-| scope        | Task field: globs of the files the task may change (`["sim/**", "docs/combat.md"]`). Files outside it are flagged on submit. Widen it with `PATCH /api/tasks/:key {"scope": [...]}` if the work truly needs more files, and say why in a comment. |
+| scope        | Task field: globs of the files the task may change (`["src/checkout/**", "docs/checkout.md"]`). Files outside it are flagged on submit. Widen it with `PATCH /api/tasks/:key {"scope": [...]}` if the work truly needs more files, and say why in a comment. |
 | external_id  | An ID from outside the board, like `T07` in a repo's backlog doc; unique per project. `POST /api/projects/:key/import` upserts on it, and `GET /api/projects/:key/export.md` gives a read-only Markdown snapshot for the repo. |
 | handoff      | What you submitted for review: `summary`, `branch`, `commit`, `files`, `verify`, `media`. |
 | rework       | `true` when review sent the task back. It goes first to the agent that submitted it. |
@@ -87,7 +87,7 @@ Base URL: `{{BASE_URL}}` · OpenAPI: `{{BASE_URL}}/api/openapi.json` · MCP: `{{
 | protected_paths | In a briefing and task detail: `[{glob, unlock_label?, unlocked}]`, the project's protected files. Don't change them unless `unlocked` is true (this task has the label); if the work needs to, `ask_director` for the label before you start. |
 | stale_context | In a briefing (with `repo_path`): context files that changed after the task was written, with the commits. Read what changed before trusting the task text; if it contradicts the task, ask the Director. `baseline_missing` means the commit the task was checked against is gone (rewritten history), so the list runs from when the task was created. Then `POST /api/tasks/:key/context/recheck` (MCP `recheck_context`). |
 | missing_context | In a briefing (with `repo_path`): context paths that don't exist on the base branch. Fine when an earlier task creates them (it should be in `depends_on`); otherwise the task points at the wrong file, so ask the Director. |
-| references / dangling_references | With the project setting `reference_patterns: [{regex, source}]`: rule IDs the task cites (`C-SPARK-2`) with the line that defines them, and IDs the source doc no longer contains. |
+| references / dangling_references | With the project setting `reference_patterns: [{regex, source}]`: rule IDs the task cites (`R-AUTH-2`) with the line that defines them, and IDs the source doc no longer contains. |
 
 ### Project rules (optional)
 
@@ -99,9 +99,10 @@ Each project may set these (`GET /api/projects/:key` shows them). A project with
 | required_fields / allowed_estimates | Fields a task needs before it's ready (e.g. `priority`, `estimate`, `epic`) and the story points allowed. A backlog task may lack them (the response carries `missing_fields` and a warning); creating a task in `todo`, moving or releasing one there, or claiming one out of `backlog`, without them is a 400 naming the fields. |
 | checks       | Project setting `[{name, command, required?, required_when_paths?}]`: commands to run before submitting, listed in the briefing. `required_when_paths` globs are matched against your handoff `files`. |
 | brief_sections | Project setting `[{title?, match: {labels?, epic?, type?}, body}]`: extra standing rules appended to `agent_brief` in the briefings of matching tasks (the briefing's `brief_sections` names the ones that applied). |
-| protected_paths | Project setting `[{glob, unlock_label?}]`: files no task may change unless it has the unlocking label (`sim/**/Golden/**` unlocked by `golden-change`). Touching one is flagged on submit. |
-| glossary     | Project setting `[{term, avoid, allow?}]` (import one from a CONTEXT.md with `POST /api/projects/:key/glossary/import`). Creating or editing a task, and submitting, return `warnings` when text uses an avoided word ("unit" where the term is "Hero"). Reword; it never blocks. |
+| protected_paths | Project setting `[{glob, unlock_label?}]`: files no task may change unless it has the unlocking label (`tests/golden/**` unlocked by `golden-change`). Touching one is flagged on submit. |
+| glossary     | Project setting `[{term, avoid, allow?}]` (import one from a CONTEXT.md with `POST /api/projects/:key/glossary/import`). Creating or editing a task, and submitting, return `warnings` when text uses an avoided word ("user" where the term is "Customer"). Reword; it never blocks. |
 | stale_claim_hours | How long an `in_progress` claim may go without activity before it's flagged `stale_claim` (default 24, 0 = off; decimals allowed, e.g. 0.5). |
+| capture_label | The label quick captures from `/capture` get (default `capture`). Triage looks for it. |
 | reference_patterns | `[{regex, source}]`: rule IDs your tasks cite and the doc defining them (needs `repo_path`). Feeds `references` / `dangling_references`. A pattern that takes longer than 250 ms is skipped and reported as `reference_error`. |
 
 `todo` means "ready to be picked up". `backlog` means "not ready / not yet approved".
@@ -122,49 +123,49 @@ BASE={{BASE_URL}}
 H=(-H "X-Agent: my-agent" -H "Content-Type: application/json")
 
 # 1. Get work. Returns {"task": {...}}, or {"task": null, "reasons": [{key, title, why}]} saying why each of
-#    the top To Do cards isn't yours ("blocked by AS-1 (review)", "assigned to director", "prerequisite: ..."),
+#    the top To Do cards isn't yours ("blocked by APP-3 (review)", "assigned to director", "prerequisite: ..."),
 #    after your own parked tasks ("yours, waiting on the Director: ..."). An answered task you hold comes back with
 #    "resumed": true; "held" lists the rest of what you hold (claim_task one to pick it back up).
 #    Tell the human what's in the way rather than picking something else.
-curl -s -X POST "$BASE/api/projects/GAME/claim-next" "${H[@]}" -d '{}'
-#    Optionally filter: -d '{"sprint": "active", "epic": "Save system", "labels": ["ui"], "types": ["bug"]}'
+curl -s -X POST "$BASE/api/projects/APP/claim-next" "${H[@]}" -d '{}'
+#    Optionally filter: -d '{"sprint": "active", "epic": "Checkout", "labels": ["ui"], "types": ["bug"]}'
 #    Or claim a specific task:
-curl -s -X POST "$BASE/api/tasks/GAME-12/claim" "${H[@]}" -d '{}'
+curl -s -X POST "$BASE/api/tasks/APP-12/claim" "${H[@]}" -d '{}'
 
 # 2. The claim response is the full briefing: checkpoint (where a previous session stopped), agent_brief
 #    (plus brief sections for this kind of task), description, criteria, context, comments (review feedback),
 #    questions and answers, decisions, upstream handoffs, checks to run, protected_paths, and with a repo: repo
 #    (path, base branch, head), stale_context and dangling_references. Read it all, then read the context files. Re-read any time with:
-curl -s "$BASE/api/tasks/GAME-12" "${H[@]}"
+curl -s "$BASE/api/tasks/APP-12" "${H[@]}"
 
 # 3. Report progress, and tick criteria as you meet them (0-based indexes or exact texts).
-curl -s -X POST "$BASE/api/tasks/GAME-12/comments" "${H[@]}" \
-  -d '{"body": "Implemented the jump arc in `Player.cs`. Tuning coyote time next."}'
-curl -s -X POST "$BASE/api/tasks/GAME-12/criteria" "${H[@]}" \
-  -d '{"items": [{"item": 0, "evidence": "JumpTests.SecondJumpResetsOnLanding passes"}, {"item": 1, "evidence": "Player.cs:88"}]}'
+curl -s -X POST "$BASE/api/tasks/APP-12/comments" "${H[@]}" \
+  -d '{"body": "Added the coupon field to `CheckoutForm.tsx`. Server-side validation next."}'
+curl -s -X POST "$BASE/api/tasks/APP-12/criteria" "${H[@]}" \
+  -d '{"items": [{"item": 0, "evidence": "checkout.test.ts \"applies a valid coupon\" passes"}, {"item": 1, "evidence": "coupons.ts:42"}]}'
 #    Old tasks may still carry their checklist as "- [ ]" lines in the description. Convert it first:
-curl -s -X POST "$BASE/api/tasks/GAME-12/criteria/extract" "${H[@]}"
+curl -s -X POST "$BASE/api/tasks/APP-12/criteria/extract" "${H[@]}"
 
 # 4a. Done → submit for review with a handoff. Attach screenshots first if the change is visible: with a repo_path,
 #     write them into the repo (a gitignored folder is fine) and list them in media as "repo:<path>"; the board
 #     stores them as attachments. Otherwise upload them:
-curl -s -X POST "$BASE/api/tasks/GAME-12/attachments?filename=jump.png" -H "X-Agent: my-agent" \
-  -H "Content-Type: image/png" --data-binary @jump.png          # → {"url": "/api/attachments/7", ...}
-curl -s -X POST "$BASE/api/tasks/GAME-12/submit" "${H[@]}" -d '{
-  "summary": "Double jump with a 0.1s coyote window. Tuned in `PlayerTuning.asset`.",
-  "branch": "feat/double-jump", "commit": "9f3c2a1",
-  "files": ["Assets/Scripts/Player/Player.cs", "Assets/Data/PlayerTuning.asset"],
-  "verify": "1. Open `Scenes/Test.unity`\n2. Jump, then jump again mid-air",
+curl -s -X POST "$BASE/api/tasks/APP-12/attachments?filename=coupon.png" -H "X-Agent: my-agent" \
+  -H "Content-Type: image/png" --data-binary @coupon.png          # → {"url": "/api/attachments/7", ...}
+curl -s -X POST "$BASE/api/tasks/APP-12/submit" "${H[@]}" -d '{
+  "summary": "Coupon codes at checkout, validated server-side in `coupons.ts`.",
+  "branch": "feat/coupons", "commit": "9f3c2a1",
+  "files": ["src/checkout/CheckoutForm.tsx", "src/api/coupons.ts"],
+  "verify": "1. `npm run dev`, open /checkout\n2. Enter SAVE10: the total drops 10%",
   "media": ["/api/attachments/7"],
-  "checks": [{"name": "play-mode tests", "passed": true, "output_tail": "Passed: 38, Failed: 0"}]
+  "checks": [{"name": "unit tests", "passed": true, "output_tail": "Tests: 38 passed, 38 total"}]
 }'
 #    The response lists any unchecked_criteria: meet them, or say in the summary why not.
 #    awaiting_director lists the Director's own items: say in the summary how to check them.
 
 # 4b. Stuck → explain and give it back (returns to todo).
-curl -s -X POST "$BASE/api/tasks/GAME-12/comments" "${H[@]}" -d '{"body": "Blocked: need the art for ..."}'
-curl -s -X POST "$BASE/api/tasks/GAME-12/release" "${H[@]}" \
-  -d '{"checkpoint": "Done: jump arc. Next: coyote time in PlayerTuning. Branch feat/double-jump @ 9f3c2a1."}'
+curl -s -X POST "$BASE/api/tasks/APP-12/comments" "${H[@]}" -d '{"body": "Blocked: need the API spec for ..."}'
+curl -s -X POST "$BASE/api/tasks/APP-12/release" "${H[@]}" \
+  -d '{"checkpoint": "Done: coupon field. Next: validation in coupons.ts. Branch feat/coupons @ 9f3c2a1."}'
 ```
 
 ## Reference
@@ -272,35 +273,36 @@ its `reference_patterns` source doesn't contain, a `context` path missing on the
 creates it: put that task in `depends_on`), and a `scope` reaching into a protected path the task can't unlock
 ("only the Director can add \"golden-change\". Ask when you start."). They never block; fix them while it's cheap.
 
-- **Title**: short and imperative — "Add double jump", "Fix enemy spawn overlap".
+- **Title**: short and imperative — "Add coupon codes", "Fix double charge on retry".
 - **Description** (Markdown): the goal and background. Why it matters, constraints, open questions.
 - **criteria**: concrete, checkable statements of done. The human reviews against these:
-  `["Second jump only available after leaving the ground", "Resets on landing", "Unit test for the state machine"]`.
-  Mark the ones only the human can judge with `[director]`: `"[director] Jump feels responsive on the phone"`.
+  `["A valid code lowers the total", "An expired code shows an error", "Unit tests for coupon validation"]`.
+  Mark the ones only the human can judge with `[director]`: `"[director] The coupon field reads well on a phone"`.
   Put them in `criteria`, not as `- [ ]` lines in the description.
-- **context**: what to read first, so the agent doesn't guess: `["docs/movement.md", "Assets/Scripts/Player/"]`
-- **prerequisites**: anything the human must set up first (SDKs, editor modules, a device), so no agent claims
-  the task before it can be done: `["Install the .NET 8 SDK", "Add Unity iOS Build Support"]`
+- **context**: what to read first, so the agent doesn't guess: `["docs/checkout.md", "src/checkout/"]`
+- **prerequisites**: anything the human must set up first (SDKs, accounts, secrets), so no agent claims
+  the task before it can be done: `["Install the .NET 8 SDK", "Add the API key to .env"]`
 - Break big work into subtasks with `parent`, and express ordering with `depends_on`:
   ```bash
   curl -s -X POST "$BASE/api/tasks/bulk" "${H[@]}" -d '{"tasks": [
-    {"project": "GAME", "title": "Design save file format", "status": "todo", "priority": "high", "milestone": "Save system"},
-    {"project": "GAME", "title": "Implement save/load", "status": "todo", "priority": "high", "milestone": "Save system", "depends_on": ["#0"]},
-    {"project": "GAME", "title": "Autosave on checkpoint", "status": "todo", "milestone": "Save system", "depends_on": ["#1"]}
+    {"project": "APP", "title": "Design the orders table", "status": "todo", "priority": "high", "milestone": "Checkout v1"},
+    {"project": "APP", "title": "Implement the checkout API", "status": "todo", "priority": "high", "milestone": "Checkout v1", "depends_on": ["#0"]},
+    {"project": "APP", "title": "Send the order confirmation email", "status": "todo", "milestone": "Checkout v1", "depends_on": ["#1"]}
   ]}'
   ```
 
-## Triaging playtest captures
+## Triaging captures
 
-The human captures playtest notes from their phone (`/capture`). Each becomes a `backlog` task labeled `playtest`,
-usually a one-line title, a build/device line, and screenshots. When asked to triage them:
+The human jots down notes from their phone (`/capture`). Each becomes a `backlog` task labeled with the project's
+`capture_label` (default `capture`; `get_board` shows it), usually a one-line title, a build/device line, and
+screenshots. When asked to triage them:
 
-1. `GET /api/tasks?project=GAME&label=playtest&status=backlog` (MCP: `list_tasks` with `label: "playtest"`; its
+1. `GET /api/tasks?project=APP&label=capture&status=backlog` (MCP: `list_tasks` with `label: "capture"`; its
    summaries list each capture's `attachments` with their ids).
 2. Look at each screenshot (MCP: `get_attachment` shows the image; HTTP: `GET /api/attachments/:id`).
 3. Rewrite the task so an agent could pick it up cold: a clear title, what's wrong and where, `criteria`,
-   `context` (the scene/scripts likely involved), a `type` and `priority`, and an `epic` if one fits.
-   Keep the `playtest` label and the build/device line.
+   `context` (the files likely involved), a `type` and `priority`, and an `epic` if one fits.
+   Keep the capture label and the build/device line.
 4. Merge duplicates (comment on the survivor, delete the rest only if the human agrees). Leave the tasks in
    `backlog` unless the human asked you to make them ready.
 

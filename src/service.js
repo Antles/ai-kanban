@@ -21,7 +21,7 @@ export const TYPES = ['task', 'feature', 'bug', 'chore', 'spike', 'epic'];
 export const MILESTONE_STATUSES = ['open', 'closed'];
 export const SPRINT_STATUSES = ['planned', 'active', 'completed'];
 export const REVIEW_VERDICTS = ['accept', 'changes'];
-// Screenshots, clips and logs from playtests or agent handoffs. Served back with these
+// Screenshots, clips and logs from quick captures or agent handoffs. Served back with these
 // exact types, so nothing that a browser would execute (HTML, SVG) is allowed.
 export const ATTACHMENT_TYPES = [
   'image/png',
@@ -280,7 +280,7 @@ function normCriteria(value, existing = []) {
   return items;
 }
 
-// The repo path in a context entry ("docs/combat.md", "docs/combat.md#sparks", "docs/combat.md §4"),
+// The repo path in a context entry ("docs/auth.md", "docs/auth.md#sessions", "docs/auth.md §4"),
 // or null for URLs and task keys.
 function contextPath(ref) {
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(ref) || /^[A-Z][A-Z0-9]*-\d+$/.test(ref)) return null;
@@ -427,7 +427,7 @@ SETTINGS.base_branch = {
 };
 
 SETTINGS.protected_paths = {
-  // Files agents must not touch unless the task carries the unlocking label (e.g. golden replays).
+  // Files agents must not touch unless the task carries the unlocking label (e.g. golden files).
   default: [],
   norm(value) {
     return list(value, 'protected_paths', 50).map((raw, i) => {
@@ -439,7 +439,7 @@ SETTINGS.protected_paths = {
 };
 
 SETTINGS.reference_patterns = {
-  // Rule IDs cited in tasks ("C-SPARK-2") and the doc that defines them. With repo_path, briefings
+  // Rule IDs cited in tasks ("R-AUTH-2") and the doc that defines them. With repo_path, briefings
   // point each ID at its line and flag IDs the doc no longer contains.
   default: [],
   norm(value) {
@@ -504,6 +504,16 @@ SETTINGS.stale_claim_hours = {
     const n = Number(value);
     if (!Number.isFinite(n) || n < 0 || n > 24 * 365) throw new ApiError(400, 'stale_claim_hours must be a number of hours (0 turns it off)');
     return n;
+  },
+};
+
+SETTINGS.capture_label = {
+  // The label quick captures (/capture) get, and the one triage looks for.
+  default: 'capture',
+  norm(value) {
+    const [label, ...more] = normLabels(value);
+    if (!label || more.length) throw new ApiError(400, 'capture_label must be one label');
+    return label;
   },
 };
 
@@ -919,7 +929,7 @@ export class Kanban {
     if (input.repo_path) await this.assertRepoPath(input.repo_path);
     const key = String(input.key ?? '').trim().toUpperCase();
     if (!/^[A-Z][A-Z0-9]{1,9}$/.test(key)) {
-      throw new ApiError(400, 'Project key must be 2-10 characters: a letter followed by letters or digits (e.g. "GAME")');
+      throw new ApiError(400, 'Project key must be 2-10 characters: a letter followed by letters or digits (e.g. "APP")');
     }
     const name = text(input.name, 'name', { max: 200 }) || key;
     const description = text(input.description, 'description', { max: 20000 }) ?? '';
@@ -1580,7 +1590,7 @@ export class Kanban {
 
     const parent = input.parent ? this.taskRow(resolve(input.parent)) : null;
     const projectRef = input.project ?? parent?.project_key;
-    if (!projectRef) throw new ApiError(400, 'project is required (e.g. "GAME")');
+    if (!projectRef) throw new ApiError(400, 'project is required (e.g. "APP")');
     const project = this.projectRow(projectRef);
     const milestone = input.milestone ? this.milestoneRow(input.milestone, project.id) : null;
     const estimate = normEstimate(input.estimate) ?? null;

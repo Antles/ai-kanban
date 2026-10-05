@@ -76,13 +76,31 @@ function sendError(res, err) {
   sendJson(res, 500, { error: 'Internal server error' });
 }
 
-function setCors(res) {
-  res.setHeader('access-control-allow-origin', '*');
-  res.setHeader('access-control-allow-methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-  res.setHeader(
-    'access-control-allow-headers',
-    'content-type, authorization, x-api-key, x-agent, x-role, x-director-key, mcp-protocol-version, mcp-session-id',
-  );
+const LOOPBACK = new Set(['localhost', '127.0.0.1', '[::1]']);
+const hostname = (host) => String(host ?? '').replace(/:\d+$/, '').toLowerCase();
+
+// Web pages on other sites must not drive the board from a visitor's browser: the API sends no CORS
+// headers, a request whose Origin isn't this host is refused, and without an API key only loopback
+// Host names are served, so a DNS-rebinding page (Host: evil.example) can't reach an open board.
+// Agents and MCP clients send no Origin and are unaffected.
+function checkCaller(req, apiKey) {
+  const hosts = [req.headers.host, req.headers['x-forwarded-host']].filter(Boolean);
+  const { origin } = req.headers;
+  if (origin !== undefined) {
+    let host = null;
+    try {
+      host = new URL(origin).host;
+    } catch {
+      /* "null" or garbage: refused below */
+    }
+    if (!host || !hosts.includes(host)) throw new ApiError(403, `Cross-origin requests are refused (Origin ${origin})`);
+  }
+  if (!apiKey && !LOOPBACK.has(hostname(req.headers.host))) {
+    throw new ApiError(
+      403,
+      `This board has no API key, so it only answers on localhost. Set API_KEY (KANBAN_API_KEY with Docker) to reach it as ${hostname(req.headers.host) || 'this host'}.`,
+    );
+  }
 }
 
 async function readBody(req, limit) {
@@ -169,7 +187,7 @@ export function createApp({ dbPath = ':memory:', apiKey = '', directorKey = '' }
     const { pathname } = url;
     const isApi = pathname.startsWith('/api/') || pathname === '/mcp';
 
-    if (isApi) setCors(res);
+    if (isApi) checkCaller(req, apiKey);
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       return res.end();

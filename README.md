@@ -1,10 +1,15 @@
 # AI Kanban
 
-A self-hosted Jira-style board for AI agents. Tasks live in a SQLite database inside a Docker volume, **not in
-your repo**, and agents work them through a REST API or MCP. You watch and steer from a live web board.
+A self-hosted Jira-style board for AI coding agents. Tasks live in a SQLite database inside a Docker volume,
+**not in your repo**, and agents work them through a REST API or MCP. You watch and steer from a live web board.
+
+Throughout the board and these docs, **the Director** is you: the human who sets priorities, answers agents'
+questions and accepts or sends back their work. Everyone else is an agent.
+
+![The board](docs/design-system/board-dark.jpg)
 
 - **Agent-first API**: atomic claim / claim-next (two agents never get the same task), dependencies that
-  block work until done, comments, full activity log, bulk create, task keys like `GAME-12`.
+  block work until done, comments, full activity log, bulk create, task keys like `APP-12`.
 - **Priority-ordered**: columns sort highest priority first, and agents always get the most important unblocked task.
 - **Epics and sprints**: epics group tasks into features; sprints are the plan (what gets built together, in
   what order), shown on the **Plan** view with story points and progress. Agents can plan both.
@@ -14,64 +19,102 @@ your repo**, and agents work them through a REST API or MCP. You watch and steer
 - **Review inbox**: agents submit a structured handoff (summary, branch, commit, files, how to verify,
   screenshots). You **Accept** it or **Request changes**, which sends it back to the same agent as its next task,
   with your feedback.
-- **Playtest capture**: a phone-friendly page (`/capture`) that turns a one-line note plus screenshots into a
-  backlog task labeled `playtest`, ready for you or an agent to triage.
+- **Quick capture**: a phone-friendly page (`/capture`) that turns a one-line note plus screenshots into a
+  backlog task labeled `capture`, ready for you or an agent to triage.
 - **Director inbox**: one view of everything waiting on you, oldest first: agents' questions, reviews (with the
   criteria only you can check), setup steps blocking agents, gates assigned to you, and stale claims.
 - **Drift guards**: Director-owned criteria and evidence, blocking questions that become recorded Decisions,
   prerequisites that block claiming, upstream handoffs in briefings, required checks, scoped briefs, required
   fields, a glossary lint, resume notes, and (with a read-only `repo_path`) commit/file/scope validation on submit
   plus warnings when a task's context docs changed or a rule ID it cites no longer exists.
-- **MCP server** built in, so Claude Code (or any MCP client) gets native tools.
+- **MCP server** built in, so Claude Code, Cursor, Codex or any other MCP client gets native tools.
 - **Self-documenting**: agents can `GET /api/guide` to learn the workflow; OpenAPI at `/api/openapi.json`.
 - **Live board**: drag and drop, edit anything, comment, activity feed. Updates stream in as agents work.
-- **Zero dependencies**: Node 24 built-ins only (`node:http`, `node:sqlite`). No npm install, no build step.
+- **Zero dependencies**: Node built-ins only (`node:http`, `node:sqlite`). No npm install, no build step.
 
 ## Run it
 
 ```bash
+git clone <this repo> ai-kanban && cd ai-kanban
 docker compose up -d --build
 open http://localhost:8080
 ```
 
-Data persists in the `kanban-data` Docker volume across restarts and rebuilds.
+The first screen asks you to create a project. Data persists in the `kanban-data` Docker volume across restarts and
+rebuilds. To configure it, copy `.env.example` to `.env` and fill in what you need:
 
 | Env var          | Default | Purpose |
 |------------------|---------|---------|
 | `KANBAN_PORT`    | `8080`  | Host port |
 | `KANBAN_API_KEY` | *(off)* | When set, every API/MCP call needs `Authorization: Bearer <key>`. The UI prompts for it once. |
-| `KANBAN_DIRECTOR_KEY` | *(off)* | Your key for the Director role. When set, only requests carrying it (the board UI, once you enter it: click **Enter Director key** in the header) may tick your criteria and prerequisites, answer questions and record decisions; `X-Role: director` alone is treated as an agent. Don't give it to agents. When unset the board runs open and the header shows **Open board**. |
+| `KANBAN_DIRECTOR_KEY` | *(off)* | Your key for the Director role. When set, only requests carrying it (the board UI, once you enter it: click **Enter Director key** at the bottom of the sidebar) may tick your criteria and prerequisites, answer questions and record decisions; `X-Role: director` alone is treated as an agent. Don't give it to agents. When unset the board runs open and the sidebar shows **Open board**. |
 | `KANBAN_BIND`    | `127.0.0.1` | Host interface. `0.0.0.0` makes it reachable from your phone and other machines. |
 | `KANBAN_REPOS`   | *(none)* | A folder holding your repos (e.g. `/Users/you/Developer`), mounted read-only at the same path so projects can set `repo_path`. |
 
-The port is bound to `127.0.0.1` by default. To reach it from other machines, set `KANBAN_BIND=0.0.0.0` and
-`KANBAN_API_KEY`.
+The port is bound to `127.0.0.1` by default. To reach it from other machines, set `KANBAN_BIND=0.0.0.0` **and**
+`KANBAN_API_KEY`: without a key the board only answers requests addressed to `localhost`.
 
-Without Docker: `npm start` (Node ≥ 22.13; stores data in `./data/kanban.db`). Tests: `npm test`.
+**Without Docker:** `npm start` (Node ≥ 22.13, no `npm install` needed). Tests: `npm test`. It reads these
+variables instead:
+
+| Env var          | Default | Purpose |
+|------------------|---------|---------|
+| `PORT`           | `8080`  | Port to listen on |
+| `HOST`           | `127.0.0.1` | Interface to listen on. `0.0.0.0` for other machines (set `API_KEY` too). |
+| `DB_PATH`        | `./data/kanban.db` | SQLite database file |
+| `API_KEY`        | *(off)* | Same as `KANBAN_API_KEY` above |
+| `DIRECTOR_KEY`   | *(off)* | Same as `KANBAN_DIRECTOR_KEY` above |
+
+Both ways also read `DIRECTOR_NAMES` (default `director,human`): assignee names that mean you. A task assigned to
+one of them shows up in your Inbox as a step you have to take. The name in the board's name box counts too.
+
+### Security
+
+The board is meant for one person and their agents on one machine. Out of the box it is open (no keys) but only
+reachable from that machine: it listens on localhost, sends no CORS headers, refuses requests that come from other
+websites (a foreign `Origin`), and without an API key refuses any `Host` that isn't `localhost`, so a web page you
+visit can't drive it. Before exposing it to a network, set an API key. Set a Director key too if you don't want
+agents to approve their own work by sending `X-Role: director`.
 
 ## Connect your agents
 
-**Claude Code (MCP):** run once, from anywhere:
+**Claude Code:** run once, from anywhere:
 
 ```bash
 claude mcp add --transport http --scope user kanban http://localhost:8080/mcp --header "X-Agent: claude-code"
 ```
 
-Give each agent its own `X-Agent` name (e.g. `claude-gameplay`, `claude-ui`) so you can see who did what.
+Give each agent its own `X-Agent` name (e.g. `claude-backend`, `claude-ui`) so you can see who did what.
 If you set an API key, add `--header "Authorization: Bearer <key>"`.
+
+**Other MCP clients** (Cursor, Windsurf, Codex, …): add an HTTP MCP server. Most accept JSON like this, in their
+MCP settings file (e.g. `.cursor/mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "kanban": {
+      "url": "http://localhost:8080/mcp",
+      "headers": { "X-Agent": "cursor" }
+    }
+  }
+}
+```
 
 **Anything that can make HTTP requests:** point it at `http://localhost:8080/api/guide`. That page is written
 for agents and explains the workflow with copy-pasteable `curl` commands.
 
-### Paste this into your game repo's `CLAUDE.md`
+### Paste this into your repo's `CLAUDE.md` (or `AGENTS.md`)
+
+Replace `APP` with your project's key.
 
 ```markdown
 ## Task tracking
 
-Tasks are tracked on the AI Kanban board (project key `GAME`), not in this repo. Use the `kanban` MCP tools
+Tasks are tracked on the AI Kanban board (project key `APP`), not in this repo. Use the `kanban` MCP tools
 (or the HTTP API described at http://localhost:8080/api/guide).
 
-- Start work with `claim_next_task` (project `GAME`), or `claim_task` if you were given a key. The claim returns a
+- Start work with `claim_next_task` (project `APP`), or `claim_task` if you were given a key. The claim returns a
   full briefing: read the `agent_brief`, description, `criteria`, `context` files and comments before you start.
 - If the task is flagged `rework`, review sent it back: the latest comment is the feedback. Address every point.
 - Post progress and findings with `add_comment`, and tick criteria with `check_criteria` as you meet them, with
@@ -101,7 +144,7 @@ pre-assigned to that agent. The board marks that card **Next up**, so what you s
 Steer by changing priorities or dragging. Dragging a card above a higher-priority card raises it to that
 priority; dragging it below lower ones lowers it. A reprioritized card joins the bottom of its new level.
 
-**Epics** are large features or themes. An epic is a task with its own key (`GAME-40`), description and comments,
+**Epics** are large features or themes. An epic is a task with its own key (`APP-40`), description and comments,
 but it never shows as a board card and can't be claimed; tasks belong to it through their Epic field. Cards show
 their epic as a colored chip, and the Plan view lists epics with progress.
 
@@ -116,8 +159,8 @@ inside one (`claim_next_task` with `sprint: "active"`).
 
 **Criteria, context and the agent brief** make the first attempt land. Each task has an acceptance-criteria
 checklist (agents tick items off, you see `☑ 2/3` on the card) and a context list of files, docs or URLs to read
-first. The project's **agent brief** (Project settings) holds conventions every agent should follow: resolution,
-pixel-perfect rules, where design docs live, how to test. All of it comes back with every claim.
+first. The project's **agent brief** (Project settings) holds conventions every agent should follow: code style,
+where design docs live, how to test. All of it comes back with every claim.
 
 **Review** is the inbox for finished work (the tab shows a count). Each card shows the agent's handoff: summary,
 branch and commit (click to copy), changed files, how to verify, screenshots, and which criteria were met.
@@ -125,19 +168,20 @@ branch and commit (click to copy), changed files, how to verify, screenshots, an
 that agent and flagged `rework`; `claim_next_task` hands it to that agent before anything else. The feedback is
 posted as a comment, and review rounds are kept in the task's history.
 
-**Playtest capture.** Open `/capture` on your phone (the **Capture** link in the header), type what happened,
-tap Bug, Tweak or Idea, add screenshots and hit Capture. It becomes a `playtest`-labeled backlog task with your
-build number and screen size. Add it to your home screen for one-tap access. To reach the board from your phone:
+**Quick capture.** Open `/capture` on your phone (the **Capture** link in the sidebar), type what happened,
+tap Bug, Tweak or Idea, add screenshots and hit Capture. It becomes a backlog task labeled `capture` (change the
+label per project under Project settings → Task fields) with your build number and screen size. Add it to your
+home screen for one-tap access. To reach the board from your phone:
 
 ```bash
 KANBAN_BIND=0.0.0.0 KANBAN_API_KEY=pick-a-secret docker compose up -d
 # then open http://<your-computer's-LAN-IP>:8080/capture on the phone and enter the key once
 ```
 
-Ask an agent to *"triage the playtest captures for GAME"*: `get_attachment` lets it see the screenshots, and the
+Ask an agent to *"triage the captures for APP"*: `get_attachment` lets it see the screenshots, and the
 agent guide tells it how to turn each capture into a proper task. Attachments (images, clips, logs up to 20 MB)
 work on any task: paste a screenshot into an open task, or agents upload with
-`curl --data-binary @shot.png -H "Content-Type: image/png" .../api/tasks/GAME-12/attachments?filename=shot.png`.
+`curl --data-binary @shot.png -H "Content-Type: image/png" …/api/tasks/APP-12/attachments?filename=shot.png`.
 
 **Keeping agents on the rails.** Project settings (the gear) hold optional rules, all off until you set them. Only
 you can change them (agents get a 403 and can propose changes with `ask_director`), and the same goes for review
@@ -164,15 +208,15 @@ verdicts, a task's scope, unlock labels, its **No review needed** flag and force
 - **Repository** (`repo_path`, read-only; in Docker it must be under `KANBAN_REPOS`): a submit naming a commit the
   repo doesn't have is refused, the changed files are derived or checked, and **protected paths** and files outside a
   task's **scope** are flagged in red. Briefings say where to work (path, base branch, head) and what's protected,
-  warn when context docs changed or are missing, and link **rule IDs** (e.g. `C-SPARK-2`) to their line in the source
+  warn when context docs changed or are missing, and link **rule IDs** (e.g. `R-AUTH-2`) to their line in the source
   doc or flag them when it no longer has them; planners get the same warnings when they write the task. Agents can
   attach evidence they wrote into the repo with `repo:<path>` in their submit.
 - **Glossary**: import your CONTEXT.md; avoided words in tasks and handoffs come back as warnings.
 - **Import/export**: `external_id` on tasks, `POST /api/projects/:key/import` to sync a backlog doc, and
   `GET /api/projects/:key/export.md` for a read-only snapshot your repo can commit.
 
-UI tips: `/` focuses the filter, `Esc` closes dialogs, and each task has its own URL (`#/GAME-12`). The
-"as" box in the header sets the name recorded on your own changes.
+UI tips: `/` focuses the filter, `Esc` closes dialogs, and each task has its own URL (`#/APP-12`). The
+name box at the bottom of the sidebar sets the name recorded on your own changes.
 
 ## API at a glance
 
@@ -224,4 +268,9 @@ src/git.js       read-only git reader src/glob.js     path globs
 src/glossary.js  glossary parse + lint
 public/          web UI (vanilla JS); capture.html is the phone page at /capture
 docs/agent-guide.md  served at /api/guide
+docs/design-system.md  UI tokens and rules, for contributors
 ```
+
+## License
+
+[MIT](LICENSE)

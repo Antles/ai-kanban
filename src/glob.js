@@ -37,7 +37,7 @@ export function matchesGlob(file, glob) {
 export const matchesAny = (file, globs) => globs.some((g) => matchesGlob(file, g));
 
 // Whether two globs can match a common file. Conservative: when both have wildcards, they overlap
-// if their fixed leading parts agree ("sim/**" and "sim/**/Golden/**" do; "src/**" and "golden/**" don't).
+// if their fixed leading parts agree ("src/**" and "src/**/golden/**" do; "src/**" and "docs/**" don't).
 export function globsOverlap(a, b) {
   const norm = (g) => {
     let x = String(g).trim().replace(/^\.\//, '');

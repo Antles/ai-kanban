@@ -3,7 +3,7 @@
 
 // Parses CONTEXT.md-style Markdown: a "**Term**:" line starts an entry and an "_Avoid_: a, b (note)"
 // line lists words to avoid. A quoted phrase in a note that contains the avoided word ("unit test")
-// is allowed. Avoid-words that are glossary terms themselves ("spark" when Spark is a term) are dropped.
+// is allowed. Avoid-words that are glossary terms themselves ("plan" when Plan is a term) are dropped.
 export function parseGlossary(markdown) {
   const entries = [];
   let current = null;

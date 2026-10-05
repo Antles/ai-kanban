@@ -4,6 +4,8 @@
   "description": "A self-hosted kanban board with a REST + MCP API for AI agents",
   "type": "module",
   "private": true,
+  "license": "MIT",
+  "repository": "github:Antles/ai-kanban",
   "engines": {
     "node": ">=22.13"
   },

@@ -2,6 +2,7 @@ FROM node:24-alpine
 
 WORKDIR /app
 ENV NODE_ENV=production \
+    HOST=0.0.0.0 \
     PORT=8080 \
     DB_PATH=/data/kanban.db
 

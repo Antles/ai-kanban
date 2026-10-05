@@ -407,12 +407,12 @@ function projectForm(project = {}) {
   return `
     <label class="field"><span>Key</span>
       <input name="key" required maxlength="10" pattern="[A-Za-z][A-Za-z0-9]{1,9}" value="${esc(project.key ?? '')}"
-        ${editing ? 'disabled' : 'autofocus'} placeholder="GAME" style="text-transform:uppercase">
-      <small>Prefix for task keys, e.g. GAME-12. 2–10 letters/digits.</small>
+        ${editing ? 'disabled' : 'autofocus'} placeholder="APP" style="text-transform:uppercase">
+      <small>Prefix for task keys, e.g. APP-12. 2–10 letters/digits.</small>
     </label>
-    <label class="field"><span>Name</span><input name="name" maxlength="200" value="${esc(project.name ?? '')}" placeholder="My Game" ${editing ? 'autofocus' : ''}></label>
+    <label class="field"><span>Name</span><input name="name" maxlength="200" value="${esc(project.name ?? '')}" placeholder="My App" ${editing ? 'autofocus' : ''}></label>
     <label class="field"><span>Description</span><textarea name="description" rows="3" placeholder="Optional — agents can read this for context">${esc(project.description ?? '')}</textarea></label>
-    <label class="field"><span>Agent brief</span><textarea name="agent_brief" rows="6" placeholder="Standing instructions every agent gets when it claims a task. E.g.&#10;- Portrait 1080×1920, pixel-perfect (no texture filtering)&#10;- Design rules live in docs/; read docs/style.md first&#10;- Run the play-mode tests before submitting">${esc(project.agent_brief ?? '')}</textarea>
+    <label class="field"><span>Agent brief</span><textarea name="agent_brief" rows="6" placeholder="Standing instructions every agent gets when it claims a task. E.g.&#10;- TypeScript strict mode; no new dependencies without asking&#10;- Design notes live in docs/; read docs/architecture.md first&#10;- Run npm test before submitting">${esc(project.agent_brief ?? '')}</textarea>
       <small>Markdown. Sent with every claim, so agents follow your conventions without being told each time.</small></label>`;
 }
 
@@ -421,38 +421,38 @@ function projectForm(project = {}) {
 const SETTING_EDITORS = {
   brief_sections: {
     title: 'Brief sections',
-    hint: 'Extra standing rules for some tasks only (Unity, Core, Art…). Each is appended to the agent brief in the briefing of every task it matches: all the conditions you fill in must hold.',
+    hint: 'Extra standing rules for some tasks only (frontend, API, docs…). Each is appended to the agent brief in the briefing of every task it matches: all the conditions you fill in must hold.',
     columns: [
-      { key: 'title', label: 'Heading', placeholder: 'Unity tasks' },
-      { key: 'match.labels', label: 'Labels (any of)', type: 'list', placeholder: 'unity' },
-      { key: 'match.epic', label: 'Epic (key or title)', placeholder: 'AS-23' },
+      { key: 'title', label: 'Heading', placeholder: 'Frontend tasks' },
+      { key: 'match.labels', label: 'Labels (any of)', type: 'list', placeholder: 'frontend' },
+      { key: 'match.epic', label: 'Epic (key or title)', placeholder: 'APP-4' },
       { key: 'match.type', label: 'Types', type: 'list', placeholder: 'bug, feature' },
-      { key: 'body', label: 'Rules (Markdown)', type: 'textarea', placeholder: '- Never edit ProjectSettings/ by hand\n- Run ./tools/unity-test.sh before submitting' },
+      { key: 'body', label: 'Rules (Markdown)', type: 'textarea', placeholder: '- Use the components in src/ui/; no inline styles\n- Run npm run lint before submitting' },
     ],
   },
   protected_paths: {
     title: 'Protected paths',
     hint: 'Files agents must not change. A submit touching one is flagged in red, unless the task has the unlocking label.',
     columns: [
-      { key: 'glob', label: 'Glob', placeholder: 'sim/**/Golden/**', grow: true },
+      { key: 'glob', label: 'Glob', placeholder: 'tests/golden/**', grow: true },
       { key: 'unlock_label', label: 'Unlocked by label', placeholder: 'golden-change' },
     ],
   },
   reference_patterns: {
     title: 'Rule IDs',
-    hint: 'IDs your docs define and tasks cite (like C-SPARK-2). With a repository, each ID in a task links to its line in the source doc, and IDs the doc no longer has are flagged.',
+    hint: 'IDs your docs define and tasks cite (like R-AUTH-2). With a repository, each ID in a task links to its line in the source doc, and IDs the doc no longer has are flagged.',
     columns: [
-      { key: 'regex', label: 'Pattern (regex)', placeholder: 'C-[A-Z]+-\\d+' },
-      { key: 'source', label: 'Defined in', placeholder: 'docs/combat.md', grow: true },
+      { key: 'regex', label: 'Pattern (regex)', placeholder: 'R-[A-Z]+-\\d+' },
+      { key: 'source', label: 'Defined in', placeholder: 'docs/auth.md', grow: true },
     ],
   },
   glossary: {
     title: 'Glossary',
     hint: 'The words to use. Task text and handoffs using an avoided word get a warning (whole words, any case; never blocking).',
     columns: [
-      { key: 'term', label: 'Term', placeholder: 'Hero' },
-      { key: 'avoid', label: 'Avoid', type: 'list', placeholder: 'unit, character', grow: true },
-      { key: 'allow', label: 'But allow', type: 'list', placeholder: 'unit test' },
+      { key: 'term', label: 'Term', placeholder: 'Customer' },
+      { key: 'avoid', label: 'Avoid', type: 'list', placeholder: 'user, client', grow: true },
+      { key: 'allow', label: 'But allow', type: 'list', placeholder: 'user agent' },
     ],
     extra: (project) => `<div class="glossary-import">
       <label class="field grow"><span>Import from a CONTEXT.md-style file</span>
@@ -467,10 +467,10 @@ const SETTING_EDITORS = {
     title: 'Checks',
     hint: 'Commands agents run before submitting and report in their handoff. Missing or failed required checks show as warnings in Review. The board never runs anything.',
     columns: [
-      { key: 'name', label: 'Name', placeholder: 'core tests' },
-      { key: 'command', label: 'Command', placeholder: 'dotnet test sim/', grow: true },
+      { key: 'name', label: 'Name', placeholder: 'unit tests' },
+      { key: 'command', label: 'Command', placeholder: 'npm test', grow: true },
       { key: 'required', label: 'Always required', type: 'checkbox', default: true },
-      { key: 'required_when_paths', label: 'Or required when these change', type: 'list', placeholder: 'sim/**/Rules/**, *.replay', grow: true },
+      { key: 'required_when_paths', label: 'Or required when these change', type: 'list', placeholder: 'src/billing/**, *.sql', grow: true },
     ],
   },
 };
@@ -531,6 +531,7 @@ function fieldRulesHtml(project) {
       ).join('')}</div></div>
       <label class="field grow"><span>Allowed estimates</span><input name="allowed_estimates" value="${esc(est.join(', '))}" placeholder="1, 2, 3, 5, 8 (empty: any)"></label>
       <label class="field"><span>Flag claims idle for (hours)</span><input name="stale_claim_hours" type="number" min="0" step="any" value="${esc(project.stale_claim_hours ?? 24)}"></label>
+      <label class="field" title="The label notes from the Capture page get"><span>Capture label</span><input name="capture_label" value="${esc(project.capture_label ?? 'capture')}" placeholder="capture" spellcheck="false"></label>
     </div>
   </details>`;
 }
@@ -541,7 +542,7 @@ function repoSettingsHtml(project) {
     <p class="muted small">The project's git checkout, read-only. With it, submits are checked against git (commit exists, files changed,
       protected paths, task scope) and briefings warn when context docs changed after a task was written.</p>
     <div class="setting-row">
-      <label class="field grow"><span>Repo path (absolute)</span><input name="repo_path" value="${esc(project.repo_path ?? '')}" placeholder="/Users/you/Developer/my-game" spellcheck="false"></label>
+      <label class="field grow"><span>Repo path (absolute)</span><input name="repo_path" value="${esc(project.repo_path ?? '')}" placeholder="/Users/you/Developer/my-app" spellcheck="false"></label>
       <label class="field"><span>Base branch</span><input name="base_branch" value="${esc(project.base_branch ?? '')}" placeholder="main" spellcheck="false"></label>
       <button type="button" class="btn" data-action="check-repo">Check</button>
     </div>
@@ -641,6 +642,7 @@ function openProjectModal(project) {
               required_fields: $$('[name="required_fields"]:checked', form).map((el) => el.value),
               allowed_estimates: splitList(data.allowed_estimates).map(Number),
               stale_claim_hours: data.stale_claim_hours === '' ? 24 : Number(data.stale_claim_hours),
+              capture_label: data.capture_label.trim() || null,
               // Only re-validate the repo when it changed, so an unreachable path doesn't block other edits.
               ...((data.repo_path.trim() || null) !== project.repo_path && { repo_path: data.repo_path.trim() || null }),
               ...((data.base_branch.trim() || null) !== project.base_branch && { base_branch: data.base_branch.trim() || null }),
@@ -965,7 +967,7 @@ function renderBoard() {
     els.board.innerHTML = `
       <div class="empty-state">
         <h2>Create your first project</h2>
-        <p>A project is a board. Its key prefixes every task, like <code>GAME-1</code>.</p>
+        <p>A project is a board. Its key prefixes every task, like <code>APP-1</code>.</p>
         <form class="modal" data-form="first-project"><div class="modal-body">${projectForm()}
           <div class="actions"><button class="btn btn-primary">Create project</button></div></div></form>
       </div>`;
@@ -2962,7 +2964,7 @@ function milestoneFormHtml(m = {}) {
   return `
     <form class="ms-form" data-id="${m.id ?? 'new'}">
       <div class="ms-form-row">
-        <label class="field grow"><span>Name</span><input name="name" required maxlength="120" value="${esc(m.name ?? '')}" placeholder="e.g. Week 2: Combat in the terminal"></label>
+        <label class="field grow"><span>Name</span><input name="name" required maxlength="120" value="${esc(m.name ?? '')}" placeholder="e.g. Public beta"></label>
         <label class="field"><span>Due</span><input name="due_date" type="date" value="${esc(m.due_date ?? '')}"></label>
       </div>
       <label class="field"><span>Goal</span><textarea name="description" rows="2" placeholder="What does done look like? (Markdown)">${esc(m.description ?? '')}</textarea></label>
@@ -3218,7 +3220,7 @@ function renderPlan() {
         <div class="section-head"><h3>Epics</h3><button class="btn btn-ghost" data-action="new-epic">${icon('plus', { size: 14 })}Epic</button></div>
         ${
           state.epicCreating
-            ? `<form class="epic-form"><input name="title" required maxlength="500" placeholder="Epic title, e.g. Save system" autofocus>
+            ? `<form class="epic-form"><input name="title" required maxlength="500" placeholder="Epic title, e.g. Checkout" autofocus>
                 <div class="actions"><button type="button" class="btn" data-action="cancel-epic">Cancel</button><button class="btn btn-primary">Create</button></div></form>`
             : ''
         }

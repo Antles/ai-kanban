@@ -5,8 +5,8 @@ services:
     container_name: ai-kanban
     restart: unless-stopped
     ports:
-      # Bound to localhost only. Set KANBAN_BIND=0.0.0.0 to reach it from your
-      # phone or other machines on your network (and set KANBAN_API_KEY if you do).
+      # Bound to localhost only. To reach it from your phone or other machines, set
+      # KANBAN_BIND=0.0.0.0 and KANBAN_API_KEY (without a key it only answers on localhost).
       - "${KANBAN_BIND:-127.0.0.1}:${KANBAN_PORT:-8080}:8080"
     environment:
       API_KEY: ${KANBAN_API_KEY:-}

@@ -20,11 +20,11 @@ const errors = {
 };
 const pathParam = (name, description) => ({ name, in: 'path', required: true, schema: { type: 'string' }, description });
 const queryParam = (name, description, schema = { type: 'string' }) => ({ name, in: 'query', schema, description });
-const taskRef = pathParam('ref', 'Task key like GAME-12, or numeric id');
+const taskRef = pathParam('ref', 'Task key like APP-12, or numeric id');
 // Acting as a named agent: subagents that share one X-Agent header pass the name they claimed with.
 const actingAgent = { agent: { type: 'string', description: 'Act as this agent; defaults to the X-Agent header' } };
 const holderOnly = { 403: json(ref('Error'), 'Another agent holds the task (the message names it)') };
-const projectKey = pathParam('key', 'Project key like GAME');
+const projectKey = pathParam('key', 'Project key like APP');
 
 const taskInputProps = {
   title: { type: 'string', maxLength: 500 },
@@ -92,6 +92,7 @@ const projectSettingsProps = {
   },
   allowed_estimates: { type: 'array', items: { type: 'integer' }, description: 'Allowed story points on create and update, e.g. [1, 2, 3, 5, 8]' },
   stale_claim_hours: { type: 'number', default: 24, description: 'Flag in_progress tasks idle this long (0 = off); the claim is kept' },
+  capture_label: { type: 'string', default: 'capture', description: 'Label quick captures from /capture get, and that triage looks for' },
   repo_path: { type: 'string', nullable: true, description: 'Absolute path of the top of the git checkout (read-only). 400 unless it is the top of a git repo inside the folder the server can see (KANBAN_REPOS in Docker)' },
   base_branch: { type: 'string', nullable: true, description: 'Branch work merges into; default main, then master' },
   protected_paths: {
@@ -216,7 +217,7 @@ export function buildOpenApi(baseUrl) {
           type: 'object',
           properties: {
             id: { type: 'integer' },
-            key: { type: 'string', example: 'GAME-12' },
+            key: { type: 'string', example: 'APP-12' },
             project: { type: 'string' },
             number: { type: 'integer' },
             ...taskInputProps,
@@ -613,7 +614,7 @@ export function buildOpenApi(baseUrl) {
         parameters: [projectKey],
         get: {
           summary: 'A file from the project repo at the base branch (read-only, text/plain)',
-          parameters: [queryParam('path', 'Repo path, e.g. docs/combat.md')],
+          parameters: [queryParam('path', 'Repo path, e.g. docs/auth.md')],
           responses: { 200: { description: 'The file' }, ...errors },
         },
       },

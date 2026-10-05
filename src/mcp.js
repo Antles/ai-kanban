@@ -10,8 +10,8 @@ const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const str = (description) => ({ type: 'string', description });
 const strList = (description) => ({ type: 'array', items: { type: 'string' }, description });
-const task = str('Task key, e.g. "GAME-12"');
-const project = str('Project key, e.g. "GAME"');
+const task = str('Task key, e.g. "APP-12"');
+const project = str('Project key, e.g. "APP"');
 const agent = str('Act as this agent (default: this connection\'s X-Agent). Subagents pass the name they claimed with.');
 
 const taskFields = {
@@ -53,13 +53,13 @@ const taskFields = {
       'Acceptance criteria: concrete, checkable statements of done ("Second jump resets on landing"). Replaces the list; ticks, owners and evidence are kept for unchanged items. ' +
       'Prefix "[director] " (or pass owner: "human") for items only the human can verify, e.g. "[director] Text readable on your phone"; you can add those but never tick or remove them.',
   },
-  context: strList('What to read before starting: repo paths, docs or URLs (e.g. "docs/combat.md", "Assets/Scripts/Party/")'),
+  context: strList('What to read before starting: repo paths, docs or URLs (e.g. "docs/checkout.md", "src/checkout/")'),
   scope: strList(
-    'Globs of the files this task may change ("sim/**", "docs/combat.md"). On submit, changed files outside it are flagged to the reviewer. Widen via update_task.',
+    'Globs of the files this task may change ("src/checkout/**", "docs/checkout.md"). On submit, changed files outside it are flagged to the reviewer. Widen via update_task.',
   ),
   external_id: { type: ['string', 'null'], description: 'An ID from outside the board, e.g. "T07" from docs/backlog.md; unique per project' },
   prerequisites: strList(
-    'Things the human must do before an agent can start ("Install the .NET 8 SDK", "Add Unity iOS Build Support"). Unticked ones block the task like depends_on. You can add them; only the human ticks them.',
+    'Things the human must do before an agent can start ("Install the .NET 8 SDK", "Add the API key to .env"). Unticked ones block the task like depends_on. You can add them; only the human ticks them.',
   ),
 };
 
@@ -84,7 +84,7 @@ const projectSettings = {
       type: 'object',
       properties: {
         name: { type: 'string' },
-        command: { type: 'string', description: 'e.g. "dotnet test sim/"' },
+        command: { type: 'string', description: 'e.g. "npm test"' },
         required: { type: 'boolean' },
         required_when_paths: { type: 'array', items: { type: 'string' }, description: 'Required only when a changed file matches one' },
       },
@@ -113,7 +113,7 @@ const projectSettings = {
     items: {
       type: 'object',
       properties: {
-        glob: { type: 'string', description: 'e.g. "sim/**/Golden/**"' },
+        glob: { type: 'string', description: 'e.g. "tests/golden/**"' },
         unlock_label: { type: 'string', description: 'e.g. "golden-change"' },
       },
       required: ['glob'],
@@ -126,7 +126,7 @@ const projectSettings = {
       type: 'object',
       properties: {
         regex: { type: 'string', description: 'e.g. "C-[A-Z]+-\\d+"' },
-        source: { type: 'string', description: 'The defining doc, e.g. "docs/combat.md"' },
+        source: { type: 'string', description: 'The defining doc, e.g. "docs/auth.md"' },
       },
       required: ['regex', 'source'],
     },
@@ -241,7 +241,7 @@ const TOOLS = [
     description: 'Create a new project (board). The key prefixes every task key.',
     inputSchema: schema(
       {
-        key: str('2-10 chars, e.g. "GAME"'),
+        key: str('2-10 chars, e.g. "APP"'),
         name: str('Display name'),
         description: str('Optional'),
         agent_brief: str('Markdown conventions every agent gets when it claims a task'),
@@ -339,7 +339,7 @@ const TOOLS = [
       {
         tasks: {
           type: 'array',
-          items: schema({ project: str('Project key, e.g. "GAME". Required unless parent is given.'), ...seeCreateTask, extract_criteria: { type: 'boolean' } }, ['title']),
+          items: schema({ project: str('Project key, e.g. "APP". Required unless parent is given.'), ...seeCreateTask, extract_criteria: { type: 'boolean' } }, ['title']),
           minItems: 1,
         },
         verbose,
@@ -474,7 +474,7 @@ const TOOLS = [
         branch: str('Git branch with the work'),
         commit: str('Commit SHA. With repo_path it must exist in that repo (409 otherwise); working in a clone the board can\'t see, leave it out.'),
         files: strList('Files you changed. With repo_path and a commit/branch, leave it out to take it from the git diff; if you list them, the diff is compared.'),
-        verify: str('Markdown: exact steps to see it working (scene to open, command to run, what to look for)'),
+        verify: str('Markdown: exact steps to see it working (page to open, command to run, what to look for)'),
         media: strList(
           'Screenshots, clips or logs. "repo:<path>" attaches a file from the project repo (needs repo_path; path relative to its top; images, video, .txt/.log/.json up to 20 MB). ' +
             'Or attachment URLs from POST /api/tasks/:key/attachments?filename=NAME (raw file body, its Content-Type, X-Agent header), or http(s) URLs. Other local paths are stored as text and can\'t be opened.',
@@ -509,7 +509,7 @@ const TOOLS = [
         task,
         agent,
         question: str('Markdown: what you need decided, with the conflicting sources (file:line) and what depends on it'),
-        options: strList('The choices, e.g. ["Keep 3 Sparks per beat (combat.md)", "Use 2 (economy.md)"]'),
+        options: strList('The choices, e.g. ["Keep sessions for 30 days (security.md)", "Use 7 days (product.md)"]'),
         recommendation: str('Which option you recommend and why'),
         blocking: { type: 'boolean', description: 'Default true: the task waits for the answer. false for an FYI you can proceed without' },
       },
@@ -539,7 +539,7 @@ const TOOLS = [
   {
     name: 'get_attachment',
     description:
-      'View an attachment (a playtest screenshot, a clip, a log) by id. Images come back as images you can see; get ids from a task\'s "attachments".',
+      'View an attachment (a screenshot, a clip, a log) by id. Images come back as images you can see; get ids from a task\'s "attachments".',
     inputSchema: schema({ id: { type: ['integer', 'string'], description: 'Attachment id' } }, ['id']),
     run: (k, a) => attachmentContent(k.getAttachment(a.id)),
   },
@@ -556,7 +556,7 @@ const TOOLS = [
     inputSchema: schema(
       {
         project,
-        title: str('Short name of the theme, e.g. "Save system"'),
+        title: str('Short name of the theme, e.g. "Checkout"'),
         description: str('Markdown: the outcome and scope of the epic'),
         priority: taskFields.priority,
         labels: taskFields.labels,
